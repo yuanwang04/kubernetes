@@ -73,6 +73,7 @@ type DesiredStateOfWorldPopulator interface {
 type PodStateProvider interface {
 	ShouldPodContainersBeTerminating(types.UID) bool
 	ShouldPodRuntimeBeRemoved(types.UID) bool
+	IsPodRestartingAllContainers(types.UID) bool
 }
 
 // PodManager is the subset of methods the manager needs to observe the actual state of the kubelet.
@@ -185,6 +186,11 @@ func (dswp *desiredStateOfWorldPopulator) findAndAddNewPods(ctx context.Context)
 			continue
 		}
 
+		if dswp.podStateProvider.IsPodRestartingAllContainers(pod.UID) {
+			// Do not add volumes for pods that are restarting all containers (forcing unmount)
+			continue
+		}
+
 		if !dswp.hasAddedPods && dswp.podStateProvider.ShouldPodRuntimeBeRemoved(pod.UID) {
 			// When kubelet restarts, we need to add pods to dsw if there is a possibility
 			// that the container may still be running
@@ -218,7 +224,7 @@ func (dswp *desiredStateOfWorldPopulator) findAndRemoveDeletedPods(logger klog.L
 			}
 
 			// Exclude known pods that we expect to be running
-			if !dswp.podStateProvider.ShouldPodRuntimeBeRemoved(pod.UID) {
+			if !dswp.podStateProvider.ShouldPodRuntimeBeRemoved(pod.UID) && !dswp.podStateProvider.IsPodRestartingAllContainers(pod.UID) {
 				continue
 			}
 		}
@@ -227,7 +233,7 @@ func (dswp *desiredStateOfWorldPopulator) findAndRemoveDeletedPods(logger klog.L
 		// it immediately from volume manager. Instead, check the kubelet
 		// pod state provider to verify that all containers in the pod have been
 		// terminated.
-		if !dswp.podStateProvider.ShouldPodRuntimeBeRemoved(volumeToMount.Pod.UID) {
+		if !dswp.podStateProvider.ShouldPodRuntimeBeRemoved(volumeToMount.Pod.UID) && !dswp.podStateProvider.IsPodRestartingAllContainers(volumeToMount.Pod.UID) {
 			logger.V(4).Info("Pod still has one or more containers in the non-exited state and will not be removed from desired state", "pod", klog.KObj(volumeToMount.Pod))
 			continue
 		}

@@ -2228,6 +2228,8 @@ func (kl *Kubelet) SyncPod(ctx context.Context, updateType kubetypes.SyncPodType
 			}
 		}
 	}
+	kl.podWorkers.SetPodRestartingAllContainers(pod.UID, restartingAllContainers)
+	
 	result := kl.containerRuntime.SyncPod(sctx, pod, podStatus, pullSecrets, kl.crashLoopBackOff, restartingAllContainers)
 	kl.reasonCache.Update(pod.UID, result)
 
@@ -2236,6 +2238,14 @@ func (kl *Kubelet) SyncPod(ctx context.Context, updateType kubetypes.SyncPodType
 	// or the periodic resync.
 	if utilfeature.DefaultFeatureGate.Enabled(features.RestartAllContainersOnContainerExits) &&
 		restartingAllContainers && result.Error() == nil {
+		
+		// Wait for volumes to be unmounted before considering the removal complete
+		// The DSWP loop will instruct the volume reconciler to unmount the volumes
+		// because IsPodRestartingAllContainers is returning true.
+		if err := kl.volumeManager.WaitForUnmount(ctx, pod); err != nil {
+			return false, nil, err
+		}
+
 		shouldRequeue := false
 		for _, r := range result.SyncResults {
 			if r.Action == kubecontainer.RemoveContainer && r.Error == nil {
@@ -3576,4 +3586,14 @@ func (kl *Kubelet) OnPodSandboxReady(ctx context.Context, pod *v1.Pod) error {
 	}()
 
 	return nil
+}
+
+// ShouldPodContainersBeTerminating returns true if the pod containers should be terminating.
+func (kl *Kubelet) ShouldPodContainersBeTerminating(uid types.UID) bool {
+	return kl.podWorkers.ShouldPodContainersBeTerminating(uid)
+}
+
+// ShouldPodRuntimeBeRemoved returns true if the pod runtime should be removed.
+func (kl *Kubelet) ShouldPodRuntimeBeRemoved(uid types.UID) bool {
+	return kl.podWorkers.ShouldPodRuntimeBeRemoved(uid)
 }

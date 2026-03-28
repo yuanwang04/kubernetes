@@ -1585,6 +1585,10 @@ func (p *fakePodStateProvider) ShouldPodRuntimeBeRemoved(uid kubetypes.UID) bool
 	return ok
 }
 
+func (p *fakePodStateProvider) IsPodRestartingAllContainers(uid kubetypes.UID) bool {
+	return false
+}
+
 func createDswpWithVolumeWithCustomPluginMgr(pv *v1.PersistentVolume, pvc *v1.PersistentVolumeClaim,
 	fakeVolumePluginMgr *volume.VolumePluginMgr) (*desiredStateOfWorldPopulator, kubepod.Manager, cache.DesiredStateOfWorld, *containertest.FakeRuntime, *fakePodStateProvider) {
 	fakeClient := &fake.Clientset{}

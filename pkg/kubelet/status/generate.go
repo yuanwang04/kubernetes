@@ -319,7 +319,7 @@ func generatePodReadyConditionForTerminalPhase(pod *v1.Pod, oldPodStatus *v1.Pod
 	return condition
 }
 
-func GenerateAllContainersRestartingCondition(pod *v1.Pod, podStatus *kubecontainer.PodStatus, oldPodStatus *v1.PodStatus, podPhase v1.PodPhase) v1.PodCondition {
+func GenerateAllContainersRestartingCondition(pod *v1.Pod, podStatus *kubecontainer.PodStatus, oldPodStatus *v1.PodStatus, podPhase v1.PodPhase, volumesUnmounted bool) v1.PodCondition {
 	if podPhase == v1.PodSucceeded {
 		return v1.PodCondition{
 			Type:   v1.AllContainersRestarting,
@@ -341,7 +341,7 @@ func GenerateAllContainersRestartingCondition(pod *v1.Pod, podStatus *kubecontai
 			Status: v1.ConditionFalse,
 		}
 	}
-	if kubecontainer.AllContainersRestartCleanedUp(pod, podStatus) {
+	if kubecontainer.AllContainersRestartCleanedUp(pod, podStatus) && volumesUnmounted {
 		return v1.PodCondition{
 			Type:   v1.AllContainersRestarting,
 			Status: v1.ConditionFalse,

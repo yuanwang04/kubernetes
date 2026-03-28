@@ -70,6 +70,7 @@ import (
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/hostutil"
 	"k8s.io/kubernetes/pkg/volume/util/subpath"
+	volumetypes "k8s.io/kubernetes/pkg/volume/util/types"
 	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
 	volumevalidation "k8s.io/kubernetes/pkg/volume/validation"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
@@ -1996,7 +1997,11 @@ func (kl *Kubelet) generateAPIPodStatus(ctx context.Context, pod *v1.Pod, podSta
 	})
 	if utilfeature.DefaultFeatureGate.Enabled(features.RestartAllContainersOnContainerExits) {
 		if podutil.AllContainersCouldRestart(&pod.Spec) {
-			s.Conditions = append(s.Conditions, status.GenerateAllContainersRestartingCondition(pod, podStatus, &oldPodStatus, s.Phase))
+			volumesUnmounted := false
+			if kl.volumeManager != nil {
+				volumesUnmounted = len(kl.volumeManager.GetMountedVolumesForPod(volumetypes.UniquePodName(pod.UID))) == 0
+			}
+			s.Conditions = append(s.Conditions, status.GenerateAllContainersRestartingCondition(pod, podStatus, &oldPodStatus, s.Phase, volumesUnmounted))
 		}
 	}
 	// set HostIP/HostIPs and initialize PodIP/PodIPs for host network pods

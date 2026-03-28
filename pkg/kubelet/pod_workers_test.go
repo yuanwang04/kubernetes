@@ -131,6 +131,11 @@ func (f *fakePodWorkers) ShouldPodRuntimeBeRemoved(uid types.UID) bool {
 	defer f.statusLock.Unlock()
 	return f.removeRuntime[uid]
 }
+func (f *fakePodWorkers) IsPodRestartingAllContainers(uid types.UID) bool {
+	return false
+}
+func (f *fakePodWorkers) SetPodRestartingAllContainers(uid types.UID, restarting bool) {
+}
 func (f *fakePodWorkers) setPodRuntimeBeRemoved(uid types.UID) {
 	f.statusLock.Lock()
 	defer f.statusLock.Unlock()

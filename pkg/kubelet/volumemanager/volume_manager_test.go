@@ -485,6 +485,10 @@ func (p *fakePodStateProvider) ShouldPodRuntimeBeRemoved(uid kubetypes.UID) bool
 	return ok
 }
 
+func (p *fakePodStateProvider) IsPodRestartingAllContainers(uid kubetypes.UID) bool {
+	return false
+}
+
 func (p *fakePodStateProvider) ShouldPodContainersBeTerminating(uid kubetypes.UID) bool {
 	_, ok := p.terminating[uid]
 	return ok

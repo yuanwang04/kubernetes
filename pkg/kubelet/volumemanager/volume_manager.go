@@ -163,6 +163,7 @@ type VolumeManager interface {
 type PodStateProvider interface {
 	ShouldPodContainersBeTerminating(k8stypes.UID) bool
 	ShouldPodRuntimeBeRemoved(k8stypes.UID) bool
+	IsPodRestartingAllContainers(k8stypes.UID) bool
 }
 
 // PodManager is the subset of methods the manager needs to observe the actual state of the kubelet.

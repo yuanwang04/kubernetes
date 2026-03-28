@@ -248,6 +248,10 @@ type PodWorkers interface {
 	// until deletion+removal_from_etcd or eviction, although garbage collection
 	// can free content when this method returns false.
 	ShouldPodContentBeRemoved(uid types.UID) bool
+	// IsPodRestartingAllContainers returns true if the pod is restarting all containers.
+	IsPodRestartingAllContainers(uid types.UID) bool
+	// SetPodRestartingAllContainers updates whether the pod is restarting all containers.
+	SetPodRestartingAllContainers(uid types.UID, restarting bool)
 	// IsPodForMirrorPodTerminatingByFullName returns true if a static pod with the
 	// provided pod name is currently terminating and has yet to complete. It is
 	// intended to be used only during orphan mirror pod cleanup to prevent us from
@@ -408,9 +412,11 @@ type podSyncStatus struct {
 	// observedRuntime is true if the pod has been observed to be present in the
 	// runtime. A pod that has been observed at runtime must go through either
 	// SyncTerminatingRuntimePod or SyncTerminatingPod. Otherwise, we can avoid
-	// invoking the terminating methods if the pod is deleted or orphaned before
+	// invoked the terminating methods if the pod is deleted or orphaned before
 	// it has been started.
 	observedRuntime bool
+	// restartingAllContainers is true if the pod is currently restarting all containers.
+	restartingAllContainers bool
 }
 
 func (s *podSyncStatus) IsWorking() bool              { return s.working }
@@ -711,6 +717,23 @@ func (p *podWorkers) ShouldPodContentBeRemoved(uid types.UID) bool {
 	// a pod that hasn't been sent to the pod worker yet should have no content on disk once we have
 	// synced all content.
 	return p.podsSynced
+}
+
+func (p *podWorkers) IsPodRestartingAllContainers(uid types.UID) bool {
+	p.podLock.Lock()
+	defer p.podLock.Unlock()
+	if status, ok := p.podSyncStatuses[uid]; ok {
+		return status.restartingAllContainers
+	}
+	return false
+}
+
+func (p *podWorkers) SetPodRestartingAllContainers(uid types.UID, restarting bool) {
+	p.podLock.Lock()
+	defer p.podLock.Unlock()
+	if status, ok := p.podSyncStatuses[uid]; ok {
+		status.restartingAllContainers = restarting
+	}
 }
 
 func (p *podWorkers) IsPodForMirrorPodTerminatingByFullName(podFullName string) bool {

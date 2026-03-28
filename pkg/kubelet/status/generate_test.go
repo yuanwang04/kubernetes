@@ -677,26 +677,30 @@ func TestGenerateAllContainersRestartingCondition(t *testing.T) {
 	}
 
 	for desc, test := range map[string]struct {
-		podStatus    *kubecontainer.PodStatus
-		oldAPIStatus *v1.PodStatus
-		phase        v1.PodPhase
-		expected     v1.PodCondition
+		podStatus        *kubecontainer.PodStatus
+		oldAPIStatus     *v1.PodStatus
+		phase            v1.PodPhase
+		volumesUnmounted bool
+		expected         v1.PodCondition
 	}{
 		"pod pending": {
-			phase: v1.PodPending,
+			phase:            v1.PodPending,
+			volumesUnmounted: true,
 			expected: v1.PodCondition{
 				Status: v1.ConditionFalse,
 			},
 		},
 		"pod failed": {
-			phase: v1.PodFailed,
+			phase:            v1.PodFailed,
+			volumesUnmounted: true,
 			expected: v1.PodCondition{
 				Status: v1.ConditionFalse,
 				Reason: PodFailed,
 			},
 		},
 		"pod succeeded": {
-			phase: v1.PodSucceeded,
+			phase:            v1.PodSucceeded,
+			volumesUnmounted: true,
 			expected: v1.PodCondition{
 				Status: v1.ConditionFalse,
 				Reason: PodCompleted,
@@ -716,7 +720,8 @@ func TestGenerateAllContainersRestartingCondition(t *testing.T) {
 					},
 				},
 			},
-			phase: v1.PodRunning,
+			phase:            v1.PodRunning,
+			volumesUnmounted: true,
 			expected: v1.PodCondition{
 				Status:  v1.ConditionTrue,
 				Reason:  "RestartAllContainersStarted",
@@ -743,7 +748,8 @@ func TestGenerateAllContainersRestartingCondition(t *testing.T) {
 					Status: v1.ConditionTrue,
 				}},
 			},
-			phase: v1.PodRunning,
+			phase:            v1.PodRunning,
+			volumesUnmounted: true,
 			expected: v1.PodCondition{
 				Status:  v1.ConditionTrue,
 				Reason:  "RestartAllContainersStarted",
@@ -757,9 +763,25 @@ func TestGenerateAllContainersRestartingCondition(t *testing.T) {
 					Status: v1.ConditionTrue,
 				}},
 			},
-			phase: v1.PodPending,
+			phase:            v1.PodPending,
+			volumesUnmounted: true,
 			expected: v1.PodCondition{
 				Status: v1.ConditionFalse,
+			},
+		},
+		"container triggres RestartAllContainers rule, cleaned up but volumes not unmounted": {
+			oldAPIStatus: &v1.PodStatus{
+				Conditions: []v1.PodCondition{{
+					Type:   v1.AllContainersRestarting,
+					Status: v1.ConditionTrue,
+				}},
+			},
+			phase:            v1.PodPending,
+			volumesUnmounted: false,
+			expected: v1.PodCondition{
+				Status:  v1.ConditionTrue,
+				Reason:  "RestartAllContainersStarted",
+				Message: "container exited with restart policy rule",
 			},
 		},
 	} {
@@ -769,7 +791,7 @@ func TestGenerateAllContainersRestartingCondition(t *testing.T) {
 			if test.podStatus != nil {
 				podStatus = test.podStatus
 			}
-			condition := GenerateAllContainersRestartingCondition(defaultPod, podStatus, test.oldAPIStatus, test.phase)
+			condition := GenerateAllContainersRestartingCondition(defaultPod, podStatus, test.oldAPIStatus, test.phase, test.volumesUnmounted)
 			require.Equal(t, test.expected, condition)
 		})
 	}
