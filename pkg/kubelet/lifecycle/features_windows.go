@@ -21,6 +21,7 @@ package lifecycle
 import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/component-helpers/resource"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 )
 
 func isPodLevelResourcesSupported(pod *v1.Pod) PodAdmitResult {
@@ -29,6 +30,17 @@ func isPodLevelResourcesSupported(pod *v1.Pod) PodAdmitResult {
 			Admit:   false,
 			Reason:  PodLevelResourcesNotAdmittedReason,
 			Message: "pod-level resources are not supported on Windows",
+		}
+	}
+	return PodAdmitResult{Admit: true}
+}
+
+func isRestartAllContainersSupported(pod *v1.Pod) PodAdmitResult {
+	if podutil.AllContainersCouldRestart(&pod.Spec) {
+		return PodAdmitResult{
+			Admit:   false,
+			Reason:  RestartAllContainersNotAdmittedReason,
+			Message: "RestartAllContainers is not supported on Windows",
 		}
 	}
 	return PodAdmitResult{Admit: true}

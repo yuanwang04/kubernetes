@@ -262,6 +262,7 @@ var (
 		lifecycle.OutOfEphemeralStorage,
 		lifecycle.OutOfPods,
 		lifecycle.PodLevelResourcesNotAdmittedReason,
+		lifecycle.RestartAllContainersNotAdmittedReason,
 		lifecycle.PodFeatureUnsupported,
 		tainttoleration.ErrReasonNotMatch,
 		eviction.Reason,

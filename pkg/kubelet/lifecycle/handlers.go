@@ -43,8 +43,9 @@ import (
 const (
 	maxRespBodyLength = 10 * 1 << 10 // 10KB
 
-	AppArmorNotAdmittedReason          = "AppArmor"
-	PodLevelResourcesNotAdmittedReason = "PodLevelResourcesNotSupported"
+	AppArmorNotAdmittedReason             = "AppArmor"
+	PodLevelResourcesNotAdmittedReason    = "PodLevelResourcesNotSupported"
+	RestartAllContainersNotAdmittedReason = "RestartAllContainersNotSupported"
 
 	// Reasons for pod features admission failure
 	PodFeatureUnsupported = "PodFeatureUnsupported"
@@ -233,7 +234,10 @@ func NewPodFeaturesAdmitHandler() PodAdmitHandler {
 type podFeaturesAdmitHandler struct{}
 
 func (h *podFeaturesAdmitHandler) Admit(_ context.Context, attrs *PodAdmitAttributes) PodAdmitResult {
-	return isPodLevelResourcesSupported(attrs.Pod)
+	if res := isPodLevelResourcesSupported(attrs.Pod); !res.Admit {
+		return res
+	}
+	return isRestartAllContainersSupported(attrs.Pod)
 }
 
 // declaredFeaturesAdmitHandler is a PodAdmitHandler that checks a pod's feature requirements.

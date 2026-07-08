@@ -33,3 +33,7 @@ func isPodLevelResourcesSupported(pod *v1.Pod) PodAdmitResult {
 	}
 	return PodAdmitResult{Admit: true}
 }
+
+func isRestartAllContainersSupported(pod *v1.Pod) PodAdmitResult {
+	return PodAdmitResult{Admit: true}
+}

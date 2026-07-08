@@ -4073,6 +4073,15 @@ func TestRecordAdmissionRejection(t *testing.T) {
 			`,
 		},
 		{
+			name:   "RestartAllContainers",
+			reason: lifecycle.RestartAllContainersNotAdmittedReason,
+			wants: `
+				# HELP kubelet_admission_rejections_total [ALPHA] Cumulative number pod admission rejections by the Kubelet.
+				# TYPE kubelet_admission_rejections_total counter
+				kubelet_admission_rejections_total{reason="RestartAllContainersNotSupported"} 1
+			`,
+		},
+		{
 			name:   "OtherReason",
 			reason: "OtherReason",
 			wants: `
